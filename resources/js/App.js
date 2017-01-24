@@ -1,3 +1,36 @@
+var Buttons = {
+     LEFT: 65,
+     RIGHT: 68,
+     FIRE: 32
+};
+
+var Input = new function() {
+
+     var MAX_KEYS = 256;
+     var keys = initArray();
+
+     this.setKey = function(code, value) {
+          keys[code] = value;
+     }
+
+     this.getButton = function(code) {
+          return keys[code];
+     }
+
+     function initArray() {
+          var keys = [];
+          for (i = 0; i < MAX_KEYS; i++) {
+               keys.push(false);
+          }
+          return keys;
+     }
+}
+
+function Resource(url) {
+     this.url = url;
+     this.content = undefined;
+}
+
 var canvas;
 var gl;
 
@@ -78,20 +111,25 @@ function init() {
      lastUpdate = Date.now();
 
      window.addEventListener('keydown', function(event) {
-          switch (event.keyCode) {
-               case 37: // Left
-                    mat4.translate(playerTransform, playerTransform, [-32, 0, 0]);
-                    break;
+          Input.setKey(event.keyCode, true);
+     }, false);
 
-               case 39: // Right
-                    mat4.translate(playerTransform, playerTransform, [32, 0, 0]);
-                    break;
-          }
+     window.addEventListener('keyup', function(event) {
+          Input.setKey(event.keyCode, false);
      }, false);
 }
 
 function update(dt) {
-
+     if (Input.getButton(Buttons.LEFT)) {
+          console.log("Left");
+     }
+     else
+     if (Input.getButton(Buttons.RIGHT)) {
+          console.log("Right");
+     }
+     if (Input.getButton(Buttons.FIRE)) {
+          console.log("FIRE!");
+     }
 }
 
 
