@@ -96,7 +96,7 @@ function sliceSprites(spritesheet, xSprites, ySprites, cellWidth, cellHeight) {
      var du = cellWidth / spritesheet.width;
      var dv = cellHeight / spritesheet.height;
 
-     var v = 0;
+     var v = dv;
      for (i = 0; i < ySprites; i++) {
           var u = 0;
           for (j = 0; j < xSprites; j++) {
@@ -104,7 +104,7 @@ function sliceSprites(spritesheet, xSprites, ySprites, cellWidth, cellHeight) {
                sprites.push(new Sprite(spritesheet, uvs));
                u+=du;
           }
-          v+=dv;
+          v-=dv;
      }
 
      return sprites;

@@ -7,14 +7,29 @@ var Buttons = {
 var Input = new function() {
 
      var MAX_KEYS = 256;
-     var keys = initArray();
+     var prevKeys = initArray();
+     var currKeys = initArray();
 
-     this.setKey = function(code, value) {
-          keys[code] = value;
+     this.update = function() {
+          for (i = 0; i < MAX_KEYS; i++) {
+               prevKeys[i] = currKeys[i];
+          }
      }
 
-     this.getButton = function(code) {
-          return keys[code];
+     this.setKey = function(code, value) {
+          currKeys[code] = value;
+     }
+
+     this.isButtonDown = function(code) {
+          return currKeys[code]
+     }
+
+     this.wasButtonPressed = function(code) {
+          return !prevKeys[code] && currKeys[code];
+     }
+
+     this.wasButtonReleased = function(code) {
+          return prevKeys[code] && !currKeys[code];
      }
 
      function initArray() {
@@ -41,13 +56,11 @@ var enemies = [];
 var vertSrcResouce = new Resource('resources/shaders/simple.vert');
 var fragSrcResouce = new Resource('resources/shaders/simple.frag');
 var r_spriteSheet = new Resource('resources/images/SpriteSheet.png');
-var bulletTexture = new Resource('resources/images/Bullet.png');
 
 var r = new ResourceManager();
 r.addTxtResourceToLoad(vertSrcResouce);
 r.addTxtResourceToLoad(fragSrcResouce);
 r.addImgResourceToLoad(r_spriteSheet);
-r.addImgResourceToLoad(bulletTexture);
 r.loadAllResources(function() {
      run();
 });
@@ -55,9 +68,7 @@ r.loadAllResources(function() {
 var sprites=[];
 var spriteBatch;
 var mvp;
-var m;
 var texture;
-var playerTransform;
 
 function run() {
      canvas = document.getElementById('OpenGL-Canvas');
@@ -101,14 +112,22 @@ function init() {
      gl.bindTexture(gl.TEXTURE_2D, null);
 
      mvp = mat4.ortho(mat4.create(), -128, 128, -128, 128, 0.1, 10);
-     sprites = sliceSprites(r_spriteSheet.content, 2, 1, 32, 32);
+     sprites = sliceSprites(r_spriteSheet.content, 2, 2, 32, 32);
 
      spriteBatch = new SpriteBatch(program);
 
-     m = mat4.create();
-     playerTransform = mat4.create();
-     mat4.translate(playerTransform, playerTransform, [0, 32*-3.5, 0]);
      lastUpdate = Date.now();
+
+     player = new GameObject(sprites[1]);
+     bullet = new GameObject(sprites[2]);
+     for (i = 1; i < 4; i++) {
+          for (j = -3; j < 3; j++) {
+               var enemy = new GameObject(sprites[0]);
+               enemy.move(j*32, i*32);
+               enemies.push(enemy);
+          }
+     }
+     player.move(0, 32*-3.5);
 
      window.addEventListener('keydown', function(event) {
           Input.setKey(event.keyCode, true);
@@ -119,27 +138,46 @@ function init() {
      }, false);
 }
 
+var passed = 0;
+var dir = 0;
 function update(dt) {
-     if (Input.getButton(Buttons.LEFT)) {
-          console.log("Left");
+     passed += dt;
+     if (passed >= 1500) {
+          for (i = 0; i < enemies.length; i++) {
+               if (dir == 0 || dir == 2) {
+                    enemies[i].move(0, -16);
+               }
+               else if (dir == 1){
+                    enemies[i].move(32, 0);
+               }
+               else {
+                    enemies[i].move(-32, 0);
+               }
+          }
+          dir = (dir+1)%4;
+          passed = 0;
+     }
+     if (Input.wasButtonPressed(Buttons.LEFT)) {
+          player.move(-32, 0);
      }
      else
-     if (Input.getButton(Buttons.RIGHT)) {
-          console.log("Right");
+     if (Input.wasButtonPressed(Buttons.RIGHT)) {
+          player.move(32, 0);
      }
-     if (Input.getButton(Buttons.FIRE)) {
+     if (Input.wasButtonPressed(Buttons.FIRE)) {
           console.log("FIRE!");
      }
+     bullet.move(0, 0.2*dt);
 }
-
 
 function render(dt) {
      gl.clear(gl.COLOR_BUFFER_BIT);
      spriteBatch.begin(texture);
-     for (i = 0; i < 10; i++) {
-          spriteBatch.drawSprite(sprites[0], m);
+     for (i = 0; i < enemies.length; i++) {
+          spriteBatch.drawSprite(enemies[i].sprite, enemies[i].transform);
      }
-     spriteBatch.drawSprite(sprites[1], playerTransform);
+     spriteBatch.drawSprite(bullet.sprite, bullet.transform);
+     spriteBatch.drawSprite(player.sprite, player.transform);
      spriteBatch.end();
 }
 
@@ -150,5 +188,15 @@ function loop() {
      lastUpdate = now;
      update(dt);
      render(dt);
+     Input.update();
      window.requestAnimationFrame(loop);
+}
+
+function GameObject (sprite) {
+     this.sprite = sprite;
+     this.transform = mat4.create();
+}
+
+GameObject.prototype.move = function(x, y) {
+     mat4.translate(this.transform, this.transform, [x, y, 0]);
 }
